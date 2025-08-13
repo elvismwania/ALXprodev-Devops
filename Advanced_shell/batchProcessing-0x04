@@ -1,0 +1,55 @@
+#!/bin/bash
+
+fetch_with_retry() {
+  local pokemon=$1
+  local i=1
+  local success=false
+  local tempfile=$(mktemp)
+
+  while [ $i -le 3 ]; do
+    echo "Fetching data for $pokemon Attempt $i."
+
+    response=$(curl -s -w "%{http_code}" -o $tempfile "https://pokeapi.co/api/v2/pokemon/$pokemon")
+
+    if [ "$response" != "200" ]; then
+      echo "Attempt $i failed with response $response"
+      i=$((i + 1))
+      sleep 1
+    else
+      echo "✅ Request successful"
+      mkdir -p pokemon_data
+      cat "$tempfile" > "pokemon_data/$pokemon.json"
+      echo "Saved data to pokemon_data/$pokemon.json ✅"
+      success=true
+      break
+    fi
+  done
+
+  if [ "$success" = false ]; then
+    echo "[$(date)]: Failed to fetch $pokemon after 3 attempts -- Status: $response" >> errors.txt
+    cat "$tempfile" >> errors.txt
+    echo -e "\n---\n" >> errors.txt
+    echo "Failed to fetch $pokemon. Check errors in errors.txt"
+  fi
+  rm "$tempfile"
+}
+
+
+PIDS=()
+for pokemon in bulbasaur ivysaur venusaur charmander charmeleon; do
+  fetch_with_retry "$pokemon" &
+  PIDS+=($!)
+done
+
+echo "Background jobs:"
+jobs
+
+# Optional: if user wants to kill all running fetch jobs (uncomment below)
+# echo "Killing all background fetch jobs..."
+# kill $(PIDS...)
+# echo "Jobs after killing:"
+# jobs
+
+wait
+echo "All fetches done."
+

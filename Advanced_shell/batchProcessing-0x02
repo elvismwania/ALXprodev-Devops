@@ -1,0 +1,33 @@
+#!/bin/bash
+for pokemon in bulbasaur ivysaur venusaur charmander charmeleon;
+do 	
+	i=1
+	success=false
+	while [ $i -le 3 ]; do
+		echo Fetching data for ${pokemon} Attempt ${i}.
+
+		response=$(curl -s -w "%{http_code}" -o temp.json "https://pokeapi.co/api/v2/pokemon/${pokemon}")
+
+		# Check if status is not 200
+		if [ "$response" != "200" ]; then
+  			echo "Attempt $i failed with response $response"
+			i=$((i+1))
+		else
+  			echo "✅ Request successful"
+  			mkdir -p pokemon_data
+  			cat temp.json > "pokemon_data/${pokemon}.json"
+			echo "Saved data to pokemon_data/${pokemon}.json ✅"
+			rm temp.json
+			break
+		fi
+	sleep 1
+	if [ "$success" = false ]; then
+		echo "[$(date)]: Failed to fetch ${pokemon} -- Status: ${response}" >> errors.txt
+		cat temp.json >> errors.txt
+		echo -e "\n---\n" >> errors.txt
+		echo "Failed to fetch ${pokemon}. Check errors in errors.txt"
+		rm temp.json
+	fi
+	done
+done
+

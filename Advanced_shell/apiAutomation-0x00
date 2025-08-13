@@ -1,0 +1,13 @@
+#!/bin/bash
+response=$(curl -s -w "%{http_code}" -o temp.json "https://pokeapi.co/api/v2/pokemon/pikachu")
+
+# Check if status is not 200
+if [ "$response" -ne 200 ]; then
+  echo "❌ Request failed with status $response"
+  cat temp.json >> errors.txt
+  exit 1
+else
+  echo "✅ Request successful"
+  cat temp.json >> data.json
+  exit 0
+fi
